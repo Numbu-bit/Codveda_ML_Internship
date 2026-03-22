@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -160,6 +162,7 @@ axes[2].set_title("Feature Coefficients\n(Green = raises price, Red = lowers pri
 
 plt.tight_layout()
 plt.savefig("task2_results.png", dpi=150, bbox_inches="tight")
+plt.show()
 print("Plot saved as task2_results.png")
 
 

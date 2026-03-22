@@ -8,9 +8,10 @@ warnings.filterwarnings("ignore")
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import seaborn as sns
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
@@ -276,6 +277,7 @@ axes[1, 1].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig("task7_neural_network.png", dpi=150, bbox_inches="tight")
+plt.show()
 print("Plot saved as task7_neural_network.png")
 
 
