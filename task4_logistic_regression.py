@@ -1,16 +1,3 @@
-# =============================================================================
-# CODVEDA MACHINE LEARNING INTERNSHIP
-# Level 2 - Task 1: Logistic Regression for Binary Classification
-# Dataset  : Telecom Customer Churn
-# Target   : Churn — will the customer leave? (True/False)
-# Objectives:
-#   1. Load and preprocess the dataset
-#   2. Train a Logistic Regression model using scikit-learn
-#   3. Interpret model coefficients and odds ratio
-#   4. Evaluate using accuracy, precision, recall and ROC curve
-# Tools    : Python, pandas, scikit-learn, matplotlib
-# =============================================================================
-
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -33,81 +20,67 @@ from sklearn.metrics import (
 )
 
 
-# =============================================================================
-# HELPER
-# =============================================================================
-
 def section(title):
-    print("\n" + "=" * 65)
-    print(f"  {title}")
-    print("=" * 65)
+    print(f"\n--- {title} ---")
 
 
-# =============================================================================
-# STEP 1 — LOAD DATASET
-# =============================================================================
+# STEP 1 - LOAD DATASET
 section("STEP 1: Load Dataset")
 
 df = pd.read_csv("churn-bigml-80.csv")
 
-print(f"  Dataset shape : {df.shape}")
-print(f"\n  First 3 rows:\n{df.head(3).to_string()}")
-print(f"\n  Target — Churn distribution:")
-print(df["Churn"].value_counts().to_string())
-print(f"\n  Churn rate: {df['Churn'].mean()*100:.1f}%")
-print(f"  (Imbalanced dataset — more non-churners than churners)")
+print(f"Dataset shape: {df.shape}")
+print(f"\nFirst 3 rows:")
+print(df.head(3))
+print(f"\nChurn distribution:")
+print(df["Churn"].value_counts())
+print(f"\nChurn rate: {df['Churn'].mean()*100:.1f}%")
+print("Dataset is imbalanced - more non-churners than churners")
 
 
-# =============================================================================
-# STEP 2 — PREPROCESS
-# =============================================================================
+# STEP 2 - PREPROCESS
 section("STEP 2: Preprocess")
 
-# ── 2a. Handle missing values ─────────────────────────────────────────────────
-print(f"\n>> Missing values: {df.isnull().sum().sum()} — none found ✓")
+print(f"\nMissing values: {df.isnull().sum().sum()}")
 
-# ── 2b. Encode binary categorical columns ─────────────────────────────────────
+# encode yes/no columns
 le = LabelEncoder()
 binary_cols = ["International plan", "Voice mail plan"]
 for col in binary_cols:
     df[col] = le.fit_transform(df[col])
-    print(f"   Label Encoded '{col}' → No=0, Yes=1")
+    print(f"encoded {col} -> No=0, Yes=1")
 
-# ── 2c. One-Hot Encode 'State' (50 states) ───────────────────────────────────
+# one-hot encode State
 df = pd.get_dummies(df, columns=["State"], drop_first=True)
-print(f"\n   One-Hot Encoded 'State' → new shape: {df.shape}")
+print(f"\nAfter one-hot encoding State, shape: {df.shape}")
 
-# ── 2d. Encode target ─────────────────────────────────────────────────────────
+# convert target to int
 df["Churn"] = df["Churn"].astype(int)
-print(f"\n   Target 'Churn' encoded → False=0, True=1")
+print("Churn encoded -> False=0, True=1")
 
-# ── 2e. Separate features and target ─────────────────────────────────────────
 X = df.drop(columns=["Churn"])
 y = df["Churn"]
 
-print(f"\n>> Features (X) shape : {X.shape}")
-print(f">> Target  (y) shape  : {y.shape}")
+print(f"\nFeatures shape: {X.shape}")
+print(f"Target shape: {y.shape}")
 
-# ── 2f. Train / Test split (80/20 stratified) ────────────────────────────────
+# stratified split to keep churn ratio in both sets
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
-print(f"\n>> Train set : {X_train.shape}")
-print(f">> Test  set : {X_test.shape}")
+print(f"\nTrain set: {X_train.shape}")
+print(f"Test set: {X_test.shape}")
 
-# ── 2g. Scale features ───────────────────────────────────────────────────────
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled  = scaler.transform(X_test)
-print("\n  Features standardized ✓")
+X_test_scaled = scaler.transform(X_test)
+print("Features scaled")
 
 
-# =============================================================================
-# STEP 3 — TRAIN LOGISTIC REGRESSION MODEL
-# =============================================================================
+# STEP 3 - TRAIN LOGISTIC REGRESSION
 section("STEP 3: Train Logistic Regression Model")
 
-# class_weight='balanced' handles the imbalanced churn dataset
+# using balanced class weight because the dataset is imbalanced
 model = LogisticRegression(
     max_iter=1000,
     random_state=42,
@@ -115,105 +88,80 @@ model = LogisticRegression(
 )
 model.fit(X_train_scaled, y_train)
 
-print("  Model trained successfully ✓")
-print(f"  Intercept : {model.intercept_[0]:.4f}")
+print("Model trained")
+print(f"Intercept: {model.intercept_[0]:.4f}")
 
 
-# =============================================================================
-# STEP 4 — INTERPRET COEFFICIENTS AND ODDS RATIO
-# =============================================================================
-section("STEP 4: Interpret Coefficients & Odds Ratio")
+# STEP 4 - INTERPRET COEFFICIENTS
+section("STEP 4: Interpret Coefficients and Odds Ratio")
 
-# Get original feature names (before scaling)
 feature_names = X.columns.tolist()
 
-# Build coefficients dataframe
 coeff_df = pd.DataFrame({
-    "Feature"     : feature_names,
-    "Coefficient" : model.coef_[0],
-    "Odds Ratio"  : np.exp(model.coef_[0])  # e^coef = odds ratio
+    "Feature": feature_names,
+    "Coefficient": model.coef_[0],
+    "Odds Ratio": np.exp(model.coef_[0])
 }).sort_values("Coefficient", ascending=False)
 
-# Show top 10 most impactful features only (positive and negative)
 top_pos = coeff_df.head(5)
 top_neg = coeff_df.tail(5)
-top_features = pd.concat([top_pos, top_neg])
 
-print("\n>> Top 5 features that INCREASE churn risk:")
+print("\nTop 5 features that increase churn risk:")
 print(top_pos[["Feature", "Coefficient", "Odds Ratio"]].to_string(index=False))
 
-print("\n>> Top 5 features that DECREASE churn risk:")
+print("\nTop 5 features that decrease churn risk:")
 print(top_neg[["Feature", "Coefficient", "Odds Ratio"]].to_string(index=False))
 
-print("""
->> How to read Odds Ratio:
-   Odds Ratio > 1 → feature INCREASES the chance of churn
-   Odds Ratio < 1 → feature DECREASES the chance of churn
-   Odds Ratio = 2 → feature doubles the odds of churning
-""")
+print("\nOdds Ratio > 1 means feature increases chance of churn")
+print("Odds Ratio < 1 means feature decreases chance of churn")
 
 
-# =============================================================================
-# STEP 5 — EVALUATE THE MODEL
-# =============================================================================
+# STEP 5 - EVALUATE
 section("STEP 5: Evaluate the Model")
 
-y_pred      = model.predict(X_test_scaled)
-y_pred_prob = model.predict_proba(X_test_scaled)[:, 1]  # probability of churn
+y_pred = model.predict(X_test_scaled)
+y_pred_prob = model.predict_proba(X_test_scaled)[:, 1]
 
-# ── Core metrics ──────────────────────────────────────────────────────────────
 accuracy  = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall    = recall_score(y_test, y_pred)
 f1        = f1_score(y_test, y_pred)
 auc       = roc_auc_score(y_test, y_pred_prob)
 
-print(f"\n>> Evaluation Metrics on Test Set:")
-print(f"   Accuracy  : {accuracy:.4f}  ({accuracy*100:.1f}%)")
-print(f"   Precision : {precision:.4f}  ({precision*100:.1f}%)")
-print(f"   Recall    : {recall:.4f}  ({recall*100:.1f}%)")
-print(f"   F1-Score  : {f1:.4f}  ({f1*100:.1f}%)")
-print(f"   ROC-AUC   : {auc:.4f}  ({auc*100:.1f}%)")
+print(f"\nTest set results:")
+print(f"  Accuracy  : {accuracy:.4f} ({accuracy*100:.1f}%)")
+print(f"  Precision : {precision:.4f} ({precision*100:.1f}%)")
+print(f"  Recall    : {recall:.4f} ({recall*100:.1f}%)")
+print(f"  F1-Score  : {f1:.4f} ({f1*100:.1f}%)")
+print(f"  ROC-AUC   : {auc:.4f} ({auc*100:.1f}%)")
 
-# ── Confusion matrix ──────────────────────────────────────────────────────────
 cm = confusion_matrix(y_test, y_pred)
 tn, fp, fn, tp = cm.ravel()
 
-print(f"\n>> Confusion Matrix:")
-print(f"   True  Negatives (correctly predicted NOT churn) : {tn}")
-print(f"   False Positives (predicted churn, actually not) : {fp}")
-print(f"   False Negatives (missed actual churners)        : {fn}")
-print(f"   True  Positives (correctly predicted churn)     : {tp}")
+print(f"\nConfusion Matrix breakdown:")
+print(f"  True Negatives  (correctly predicted no churn) : {tn}")
+print(f"  False Positives (predicted churn, actually not): {fp}")
+print(f"  False Negatives (missed actual churners)       : {fn}")
+print(f"  True Positives  (correctly predicted churn)    : {tp}")
 
-# ── Classification report ─────────────────────────────────────────────────────
-print(f"\n>> Full Classification Report:")
+print(f"\nClassification Report:")
 print(classification_report(y_test, y_pred, target_names=["No Churn", "Churn"]))
 
-print("""
->> What these metrics mean for a churn model:
-   Precision = when we predict churn, how often are we right?
-   Recall    = out of all actual churners, how many did we catch?
-   F1-Score  = balance between precision and recall
-   ROC-AUC   = overall model ability to separate churners from non-churners
-               (0.5 = random guess, 1.0 = perfect model)
-""")
+print("Precision = when we predict churn, how often are we right")
+print("Recall    = out of all actual churners, how many did we catch")
+print("F1-Score  = balance between precision and recall")
+print("ROC-AUC   = overall ability to separate churners from non-churners")
 
 
-# =============================================================================
-# STEP 6 — VISUALIZATIONS
-# =============================================================================
+# STEP 6 - VISUALIZATIONS
 section("STEP 6: Visualizations")
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-fig.suptitle(
-    "Level 2 Task 1 — Logistic Regression: Customer Churn Prediction",
-    fontsize=13, fontweight="bold"
-)
+fig.suptitle("Task 4 - Logistic Regression: Customer Churn Prediction", fontsize=13, fontweight="bold")
 
-# ── Plot 1: ROC Curve ─────────────────────────────────────────────────────────
+# ROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
-axes[0].plot(fpr, tpr, color="steelblue", linewidth=2.5,
-             label=f"ROC Curve (AUC = {auc:.4f})")
+axes[0].plot(fpr, tpr, color="steelblue", linewidth=2.5, label=f"ROC Curve (AUC = {auc:.4f})")
 axes[0].plot([0, 1], [0, 1], "r--", linewidth=1.5, label="Random Guess")
 axes[0].fill_between(fpr, tpr, alpha=0.1, color="steelblue")
 axes[0].set_xlabel("False Positive Rate")
@@ -222,8 +170,7 @@ axes[0].set_title("ROC Curve")
 axes[0].legend(loc="lower right")
 axes[0].grid(True, alpha=0.3)
 
-# ── Plot 2: Confusion Matrix Heatmap ─────────────────────────────────────────
-cm_labels = np.array([["TN", "FP"], ["FN", "TP"]])
+# confusion matrix heatmap
 sns.heatmap(
     cm, annot=True, fmt="d", cmap="Blues",
     xticklabels=["Predicted: No Churn", "Predicted: Churn"],
@@ -232,11 +179,10 @@ sns.heatmap(
 )
 axes[1].set_title("Confusion Matrix")
 
-# ── Plot 3: Top Feature Coefficients ─────────────────────────────────────────
+# top feature coefficients
 plot_df = coeff_df.head(10).copy()
-colors  = ["#e74c3c" if c > 0 else "#2ecc71" for c in plot_df["Coefficient"]]
-axes[2].barh(plot_df["Feature"], plot_df["Coefficient"],
-             color=colors, edgecolor="white")
+colors = ["#e74c3c" if c > 0 else "#2ecc71" for c in plot_df["Coefficient"]]
+axes[2].barh(plot_df["Feature"], plot_df["Coefficient"], color=colors, edgecolor="white")
 axes[2].axvline(x=0, color="black", linewidth=1)
 axes[2].set_xlabel("Coefficient Value")
 axes[2].set_title("Top 10 Features\n(Red = increases churn, Green = reduces churn)")
@@ -244,33 +190,23 @@ axes[2].invert_yaxis()
 
 plt.tight_layout()
 plt.savefig("task4_logistic_regression.png", dpi=150, bbox_inches="tight")
-print("  Plots saved as 'task4_logistic_regression.png' ✓")
+print("Plot saved as task4_logistic_regression.png")
 
 
-# =============================================================================
-# FINAL SUMMARY
-# =============================================================================
-section("FINAL SUMMARY")
+# SUMMARY
+section("SUMMARY")
 
-print(f"""
-  Model     : Logistic Regression (class_weight=balanced)
-  Dataset   : Telecom Churn ({df.shape[0]} samples)
-  Target    : Churn prediction (binary: Yes/No)
-
-  ┌─────────────────────────────────────────────┐
-  │          MODEL PERFORMANCE                  │
-  │  Accuracy  = {accuracy:.4f}  ({accuracy*100:.1f}%)              │
-  │  Precision = {precision:.4f}  ({precision*100:.1f}%)              │
-  │  Recall    = {recall:.4f}  ({recall*100:.1f}%)              │
-  │  F1-Score  = {f1:.4f}  ({f1*100:.1f}%)              │
-  │  ROC-AUC   = {auc:.4f}  ({auc*100:.1f}%)              │
-  └─────────────────────────────────────────────┘
-
-  Key Insights:
-  - Customers on International plan churn more
-  - High customer service calls = strong churn signal
-  - High day minutes/charges increase churn risk
-  - Voice mail plan customers tend to stay longer
-
-✅  Level 2 Task 1 — Logistic Regression Complete!
-""")
+print(f"Model: Logistic Regression (class_weight=balanced)")
+print(f"Dataset: Telecom Churn ({df.shape[0]} samples)")
+print(f"Target: Churn prediction (binary)")
+print(f"\nModel performance:")
+print(f"  Accuracy  = {accuracy:.4f} ({accuracy*100:.1f}%)")
+print(f"  Precision = {precision:.4f} ({precision*100:.1f}%)")
+print(f"  Recall    = {recall:.4f} ({recall*100:.1f}%)")
+print(f"  F1-Score  = {f1:.4f} ({f1*100:.1f}%)")
+print(f"  ROC-AUC   = {auc:.4f} ({auc*100:.1f}%)")
+print(f"\nCustomers on International plan churn more")
+print(f"High customer service calls is a strong churn signal")
+print(f"High day minutes and charges increase churn risk")
+print(f"Voice mail plan customers tend to stay longer")
+print("\nTask 4 done!")
